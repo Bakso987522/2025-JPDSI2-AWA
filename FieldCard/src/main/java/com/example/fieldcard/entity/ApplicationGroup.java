@@ -11,7 +11,7 @@ public class ApplicationGroup {
 
    @Column(name = "group_id", nullable = false, unique = true)
    private Long groupId;
-   @Column(name = "name", nullable = false, length = 255)
+   @Column(name = "name", nullable = false)
    private  String name;
 
    public ApplicationGroup() {

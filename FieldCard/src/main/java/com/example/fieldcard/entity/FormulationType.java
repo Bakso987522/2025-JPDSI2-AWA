@@ -13,7 +13,7 @@ public class FormulationType {
     public FormulationType() {
     }
 
-    public FormulationType(Long id, String name) {
+    public FormulationType(String name) {
         this.name = name;
     }
 

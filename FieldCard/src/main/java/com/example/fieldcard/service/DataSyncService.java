@@ -10,7 +10,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,15 +52,12 @@ public class DataSyncService {
             AttributesDto attributes = resource.getAttributes();
             if (attributes == null) continue;
 
-            String format = attributes.getFormat();
-
-            if ("csv".equals(format)) {
-                String baseTitle = getBaseTitle(attributes.getTitle());
-                latestFiles.putIfAbsent(baseTitle, resource);
-            }
+            // ZMIANA: Usunięto warunek filtrujący po "csv".
+            String baseTitle = getBaseTitle(attributes.getTitle());
+            latestFiles.putIfAbsent(baseTitle, resource);
         }
 
-        System.out.println("--- ZNALEZIONE NAJNOWSZE PLIKI CSV (" + latestFiles.size() + " szt.) ---");
+        System.out.println("--- ZNALEZIONE NAJNOWSZE PLIKI (" + latestFiles.size() + " szt.) ---");
         System.out.println("\n--- ROZPOCZYNAM POBIERANIE I PARSOWANIE PLIKÓW ---");
 
         for (ResourceDto resource : latestFiles.values()) {
@@ -74,26 +70,28 @@ public class DataSyncService {
             System.out.println("Przetwarzanie: " + title + " (Format: " + format + ")");
 
             try {
+                // Krok 1: Pobierz surowe bajty
                 byte[] fileBytes = this.webClient.get()
                         .uri(fileUrl)
                         .retrieve()
                         .bodyToMono(byte[].class)
                         .block();
-                String fileContent = new String(fileBytes, Charset.forName("Windows-1250"));
 
-                if (fileContent != null && !fileContent.isEmpty()) {
-                    System.out.println("  Pobrano " + fileContent.length() + " znaków.");
+                // Krok 2: Sprawdź czy pobrano zawartość
+                if (fileBytes != null && fileBytes.length > 0) {
+                    System.out.println("  Pobrano " + fileBytes.length + " bajtów.");
 
                     boolean processed = false;
                     for (FileProcessor processor : this.fileProcessors) {
                         if (processor.supports(baseTitle)) {
-                            processor.process(fileContent);
+                            // Krok 3: Przekaż surowe bajty (fileBytes) do procesora
+                            processor.process(fileBytes);
                             processed = true;
                             break;
                         }
                     }
                     if (!processed) {
-                        System.out.println("  Nie znaleziono procesora CSV dla: " + baseTitle);
+                        System.out.println("  Nie znaleziono procesora dla: " + baseTitle);
                     }
 
                 } else {

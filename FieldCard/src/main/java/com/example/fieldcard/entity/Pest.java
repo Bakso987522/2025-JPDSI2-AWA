@@ -11,12 +11,15 @@ public class Pest {
 
     @Column(name = "name", nullable = false)
     private String name;
+    @Column(name="is_active", nullable = false)
+    private boolean isActive = true;
 
     public Pest(){
 
     }
     public Pest(String name){
         this.name = name;
+        this.isActive = true;
     }
     public long getId(){
         return id;
@@ -30,11 +33,18 @@ public class Pest {
     public void setName(String name){
         this.name = name;
     }
+    public boolean isActive(){
+        return isActive;
+    }
+    public void setActive(boolean active){
+        isActive = active;
+    }
     @Override
     public String toString(){
         return "Pest{" +
                 "id=" + id +
                 ", name='" + name + '\'' +
+                ", isActive=" + isActive +
                 '}';
     }
 }

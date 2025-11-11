@@ -13,12 +13,15 @@ public class ApplicationGroup {
    private Long groupId;
    @Column(name = "name", nullable = false)
    private  String name;
+   @Column(name="is_active", nullable = false)
+   private boolean isActive = true;
 
    public ApplicationGroup() {
     }
     public ApplicationGroup(Long groupId, String name) {
         this.groupId = groupId;
         this.name = name;
+        this.isActive = true;
     }
 
     public Long getId() {
@@ -38,6 +41,22 @@ public class ApplicationGroup {
     }
     public void setName(String name) {
         this.name = name;
+    }
+    public boolean isActive() {
+        return isActive;
+    }
+
+    public void setActive(boolean active) {
+        isActive = active;
+    }
+    @Override
+    public String toString(){
+        return "ApplicationGroup{" +
+                "id=" + id +
+                ", groupId=" + groupId +
+                ", name='" + name + '\'' +
+                ", isActive=" + isActive +
+                '}';
     }
 
 }

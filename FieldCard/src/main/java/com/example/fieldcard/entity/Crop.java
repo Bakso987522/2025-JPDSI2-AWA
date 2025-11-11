@@ -12,12 +12,15 @@ public class Crop {
 
     @Column(name = "name", nullable = false)
     private String name;
+    @Column(name="is_active", nullable = false)
+    private boolean isActive = true;
 
     public Crop() {
     }
 
     public Crop(String name) {
         this.name = name;
+        this.isActive = true;
     }
 
     public Long getId() {
@@ -36,11 +39,19 @@ public class Crop {
         this.name = name;
     }
 
+    public boolean isActive() {
+        return isActive;
+    }
+
+    public void setActive(boolean active) {
+        isActive = active;
+    }
     @Override
-    public String toString() {
+    public String toString(){
         return "Crop{" +
                 "id=" + id +
                 ", name='" + name + '\'' +
+                ", isActive=" + isActive +
                 '}';
     }
 }

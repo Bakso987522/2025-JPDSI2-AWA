@@ -3,6 +3,7 @@ package com.example.fieldcard.service.processors;
 import com.example.fieldcard.entity.Pest;
 import com.example.fieldcard.repository.PestRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,6 +13,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@Order(4)
 @Component
 public class PestProcessor extends AbstractCsvProcessor {
     private final PestRepository pestRepository;

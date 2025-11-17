@@ -3,6 +3,7 @@ package com.example.fieldcard.service.processors;
 import com.example.fieldcard.entity.ApplicationGroup;
 import com.example.fieldcard.repository.ApplicationGroupRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,16 +13,18 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@Order(3)
 @Component
 public class ApplicationGroupProcessor extends AbstractCsvProcessor {
-    private final ApplicationGroupRepository applicationGroupRepository;
 
-    private Map<Long, ApplicationGroup> existingGroupsMap;
+    private final ApplicationGroupRepository repository;
+
+    private Map<String, ApplicationGroup> existingGroupsMap;
     private List<ApplicationGroup> groupsToSaveOrUpdate;
 
     @Autowired
-    public ApplicationGroupProcessor(ApplicationGroupRepository applicationGroupRepository) {
-        this.applicationGroupRepository = applicationGroupRepository;
+    public ApplicationGroupProcessor(ApplicationGroupRepository repository) {
+        this.repository = repository;
     }
 
     @Override
@@ -32,32 +35,36 @@ public class ApplicationGroupProcessor extends AbstractCsvProcessor {
     @Override
     @Transactional
     public void process(String fileContent) {
-        System.out.println("    [ApplicationGroupProcessor] Rozpoczynam SYNCHRONIZACJĘ 'słownik grup stosowania' (Soft Delete)...");
-
-        List<ApplicationGroup> existingGroupsList = applicationGroupRepository.findAll();
-
-        this.existingGroupsMap = existingGroupsList.stream()
-                .collect(Collectors.toMap(ApplicationGroup::getGroupId, Function.identity()));
-
-        System.out.println("    [ApplicationGroupProcessor] Znaleziono " + this.existingGroupsMap.size() + " wszystkich grup w bazie.");
+        System.out.println("    [ApplicationGroupProcessor] Rozpoczynam SYNCHRONIZACJĘ 'grupy zastosowan'...");
 
         this.groupsToSaveOrUpdate = new ArrayList<>();
 
+        List<ApplicationGroup> existingGroups = repository.findAll();
+
+        // ===================================
+        // === TUTAJ BYŁ BŁĄD (linia ~40) ===
+        // Zmieniamy klucz mapy z getGroupId() na getName()
+        this.existingGroupsMap = existingGroups.stream()
+                .collect(Collectors.toMap(ApplicationGroup::getName, Function.identity()));
+
+
         super.process(fileContent);
 
-        List<ApplicationGroup> groupsToDeactivate = new ArrayList<>(this.existingGroupsMap.values());
 
         int deactivatedCount = 0;
-        for (ApplicationGroup group : groupsToDeactivate) {
-            if (group.isActive()) {
-                group.setActive(false);
-                this.groupsToSaveOrUpdate.add(group);
-                deactivatedCount++;
+        if (!existingGroupsMap.isEmpty()) {
+            for (ApplicationGroup groupToDeactivate : existingGroupsMap.values()) {
+                if (groupToDeactivate.isActive()) {
+                    groupToDeactivate.setActive(false);
+                    this.groupsToSaveOrUpdate.add(groupToDeactivate);
+                    deactivatedCount++;
+                }
             }
         }
 
+
         if (!this.groupsToSaveOrUpdate.isEmpty()) {
-            applicationGroupRepository.saveAll(this.groupsToSaveOrUpdate);
+            repository.saveAll(this.groupsToSaveOrUpdate);
         }
 
         System.out.println("    [ApplicationGroupProcessor] Synchronizacja zakończona.");
@@ -66,42 +73,35 @@ public class ApplicationGroupProcessor extends AbstractCsvProcessor {
     }
 
     @Override
-    protected void processRow(String[] nextRecord) {
-        try {
-            if (nextRecord.length >= 2 &&
-                    nextRecord[0] != null && !nextRecord[0].trim().isEmpty() &&
-                    nextRecord[1] != null && !nextRecord[1].trim().isEmpty()) {
+    protected void processRow(String[] record) {
 
-                Long groupId = Long.parseLong(nextRecord[0].trim());
-                String name = nextRecord[1].trim();
+        if (record.length < 2) return;
 
-                ApplicationGroup existingGroup = this.existingGroupsMap.remove(groupId);
+        String name = record[1];
 
-                if (existingGroup == null) {
-                    this.groupsToSaveOrUpdate.add(new ApplicationGroup(groupId, name));
-                } else {
-                    boolean needsUpdate = false;
+        if (name == null || name.trim().isEmpty() || "nazwa".equalsIgnoreCase(name)) {
+            return;
+        }
 
-                    if (!existingGroup.isActive()) {
-                        existingGroup.setActive(true);
-                        needsUpdate = true;
-                    }
+        name = name.trim();
 
-                    if (!existingGroup.getName().equals(name)) {
-                        existingGroup.setName(name);
-                        needsUpdate = true;
-                    }
 
-                    if (needsUpdate) {
-                        this.groupsToSaveOrUpdate.add(existingGroup);
-                    }
-                }
+        ApplicationGroup existingGroup = this.existingGroupsMap.remove(name);
+
+
+        if (existingGroup == null) {
+
+            ApplicationGroup newGroup = new ApplicationGroup(name);
+            newGroup.setActive(true);
+            this.groupsToSaveOrUpdate.add(newGroup);
+
+        } else {
+
+            if (!existingGroup.isActive()) {
+                existingGroup.setActive(true);
+                this.groupsToSaveOrUpdate.add(existingGroup);
             }
-        } catch (NumberFormatException e) {
-            System.out.println("    [ApplicationGroupProcessor] Błąd parsowania numeru grupy: '" + nextRecord[0] + "' - Pomijanie wiersza.");
-        } catch (Exception e) {
-            System.out.println("    [ApplicationGroupProcessor] Błąd wierszu: " + String.join(";", nextRecord)
-                    + ". Błąd: " + e.getMessage());
+
         }
     }
 }

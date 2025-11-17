@@ -1,6 +1,8 @@
 package com.example.fieldcard.service.processors;
 
+import com.example.fieldcard.entity.ProductType;
 import com.example.fieldcard.entity.PlantProtectionProduct;
+import com.example.fieldcard.repository.ProductTypeRepository;
 import com.example.fieldcard.repository.PlantProtectionProductRepository;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
@@ -9,6 +11,7 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,24 +19,25 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@Order(6)
 @Component
 public class ProductBasicProcessor implements FileProcessor {
 
     private final PlantProtectionProductRepository productRepository;
+    private final ProductTypeRepository productTypeRepository;
 
     private Map<String, PlantProtectionProduct> existingProductsMap;
     private List<PlantProtectionProduct> productsToSaveOrUpdate;
 
     @Autowired
-    public ProductBasicProcessor(PlantProtectionProductRepository productRepository) {
+    public ProductBasicProcessor(PlantProtectionProductRepository productRepository,
+                                 ProductTypeRepository productTypeRepository) {
         this.productRepository = productRepository;
+        this.productTypeRepository = productTypeRepository;
     }
 
     @Override
@@ -46,7 +50,7 @@ public class ProductBasicProcessor implements FileProcessor {
     public void process(byte[] fileContent) {
         System.out.println("    [ProductBasicProcessor] Rozpoczynam SYNCHRONIZACJĘ 'Rejestr_podstawowe' (XLSX)...");
 
-        List<PlantProtectionProduct> existingProductsList = productRepository.findAll();
+        List<PlantProtectionProduct> existingProductsList = productRepository.findAllWithProductTypes();
         this.existingProductsMap = existingProductsList.stream()
                 .collect(Collectors.toMap(PlantProtectionProduct::getSorId, Function.identity()));
 
@@ -54,25 +58,20 @@ public class ProductBasicProcessor implements FileProcessor {
 
         this.productsToSaveOrUpdate = new ArrayList<>();
 
-        // Użyj Apache POI do czytania byte[]
         try (InputStream is = new ByteArrayInputStream(fileContent);
              Workbook workbook = new XSSFWorkbook(is)) {
 
-            Sheet sheet = workbook.getSheetAt(0); // Pierwszy arkusz
-
-            // Iteruj po wierszach, pomijając nagłówek (i=0)
+            Sheet sheet = workbook.getSheetAt(0);
             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
                 Row row = sheet.getRow(i);
                 if (row != null) {
-                    processRow(row); // Przekaż obiekt Row do processRow
+                    processRow(row);
                 }
             }
-
         } catch (Exception e) {
             System.out.println("    [ProductBasicProcessor] Błąd podczas parsowania XLSX: " + e.getMessage());
         }
 
-        // Logika Soft-Delete
         List<PlantProtectionProduct> productsToDeactivate = new ArrayList<>(this.existingProductsMap.values());
         int deactivatedCount = 0;
         for (PlantProtectionProduct product : productsToDeactivate) {
@@ -92,88 +91,82 @@ public class ProductBasicProcessor implements FileProcessor {
         System.out.println("    [ProductBasicProcessor] Oznaczono jako nieaktywne: " + deactivatedCount + " rekordów.");
     }
 
-    /**
-     * Przetwarza pojedynczy wiersz z pliku Excel (obiekt Row).
-     */
+    private Set<ProductType> parseProductTypes(String productTypeString) {
+        if (productTypeString == null || productTypeString.trim().isEmpty()) {
+            return new HashSet<>();
+        }
+
+        Set<String> typeNames = Arrays.stream(productTypeString.split(","))
+                .map(String::trim)
+                .filter(name -> !name.isEmpty())
+                .collect(Collectors.toSet());
+
+        if (typeNames.isEmpty()) {
+            return new HashSet<>();
+        }
+
+        List<ProductType> foundTypes = productTypeRepository.findAllByNameInAndIsActive(typeNames);
+
+        return new HashSet<>(foundTypes);
+    }
+
     protected void processRow(Row row) {
         try {
-            // Indeksy kolumn
-            String sorId = getStringCellValue(row.getCell(0)); // A
-            String name = getStringCellValue(row.getCell(2)); // C
-            String manufacturer = getStringCellValue(row.getCell(3)); // D
-            String permitNumber = getStringCellValue(row.getCell(4)); // E
-            String productType = getStringCellValue(row.getCell(5)); // F
-            String activeSubstancesString = getStringCellValue(row.getCell(6)); // G
-            LocalDate permitDate = getDateCellValue(row.getCell(7)); // H
-            LocalDate salesDeadline = getDateCellValue(row.getCell(8)); // I
-            LocalDate useDeadline = getDateCellValue(row.getCell(9)); // J
-            String labelUrl = getStringCellValue(row.getCell(10)); // K
+            String sorId = getStringCellValue(row.getCell(0));
+            String name = getStringCellValue(row.getCell(2));
+            String manufacturer = getStringCellValue(row.getCell(3));
+            String permitNumber = getStringCellValue(row.getCell(4));
+            String productTypeString = getStringCellValue(row.getCell(5));
+            String activeSubstancesString = getStringCellValue(row.getCell(6));
+            LocalDate permitDate = getDateCellValue(row.getCell(7));
+            LocalDate salesDeadline = getDateCellValue(row.getCell(8));
+            LocalDate useDeadline = getDateCellValue(row.getCell(9));
+            String labelUrl = getStringCellValue(row.getCell(10));
 
             if (sorId == null || sorId.trim().isEmpty()) {
                 return;
             }
 
+            Set<ProductType> productTypes = parseProductTypes(productTypeString);
+
             PlantProtectionProduct existingProduct = this.existingProductsMap.remove(sorId);
 
             if (existingProduct == null) {
-                // NOWY PRODUKT
                 PlantProtectionProduct newProduct = new PlantProtectionProduct();
                 newProduct.setSorId(sorId);
                 newProduct.setName(name);
                 newProduct.setManufacturer(manufacturer);
                 newProduct.setPermitNumber(permitNumber);
-                newProduct.setProductType(productType);
                 newProduct.setActiveSubstancesString(activeSubstancesString);
                 newProduct.setPermitDate(permitDate);
                 newProduct.setSalesDeadline(salesDeadline);
                 newProduct.setUseDeadline(useDeadline);
                 newProduct.setLabelUrl(labelUrl);
                 newProduct.setActive(true);
+                newProduct.setProductTypes(productTypes);
 
                 this.productsToSaveOrUpdate.add(newProduct);
 
             } else {
-                // ISTNIEJĄCY PRODUKT (aktualizacja + reaktywacja)
                 boolean needsUpdate = false;
+
                 if (!existingProduct.isActive()) {
                     existingProduct.setActive(true);
                     needsUpdate = true;
                 }
+                if (!Objects.equals(existingProduct.getName(), name)) { needsUpdate = true; existingProduct.setName(name); }
+                if (!Objects.equals(existingProduct.getManufacturer(), manufacturer)) { needsUpdate = true; existingProduct.setManufacturer(manufacturer); }
+                if (!Objects.equals(existingProduct.getPermitNumber(), permitNumber)) { needsUpdate = true; existingProduct.setPermitNumber(permitNumber); }
+                if (!Objects.equals(existingProduct.getActiveSubstancesString(), activeSubstancesString)) { needsUpdate = true; existingProduct.setActiveSubstancesString(activeSubstancesString); }
+                if (!Objects.equals(existingProduct.getPermitDate(), permitDate)) { needsUpdate = true; existingProduct.setPermitDate(permitDate); }
+                if (!Objects.equals(existingProduct.getSalesDeadline(), salesDeadline)) { needsUpdate = true; existingProduct.setSalesDeadline(salesDeadline); }
+                if (!Objects.equals(existingProduct.getUseDeadline(), useDeadline)) { needsUpdate = true; existingProduct.setUseDeadline(useDeadline); }
+                if (!Objects.equals(existingProduct.getLabelUrl(), labelUrl)) { needsUpdate = true; existingProduct.setLabelUrl(labelUrl); }
 
-                if (!Objects.equals(existingProduct.getName(), name)) {
-                    existingProduct.setName(name);
-                    needsUpdate = true;
-                }
-                if (!Objects.equals(existingProduct.getManufacturer(), manufacturer)) {
-                    existingProduct.setManufacturer(manufacturer);
-                    needsUpdate = true;
-                }
-                if (!Objects.equals(existingProduct.getPermitNumber(), permitNumber)) {
-                    existingProduct.setPermitNumber(permitNumber);
-                    needsUpdate = true;
-                }
-                if (!Objects.equals(existingProduct.getProductType(), productType)) {
-                    existingProduct.setProductType(productType);
-                    needsUpdate = true;
-                }
-                if (!Objects.equals(existingProduct.getActiveSubstancesString(), activeSubstancesString)) {
-                    existingProduct.setActiveSubstancesString(activeSubstancesString);
-                    needsUpdate = true;
-                }
-                if (!Objects.equals(existingProduct.getPermitDate(), permitDate)) {
-                    existingProduct.setPermitDate(permitDate);
-                    needsUpdate = true;
-                }
-                if (!Objects.equals(existingProduct.getSalesDeadline(), salesDeadline)) {
-                    existingProduct.setSalesDeadline(salesDeadline);
-                    needsUpdate = true;
-                }
-                if (!Objects.equals(existingProduct.getUseDeadline(), useDeadline)) {
-                    existingProduct.setUseDeadline(useDeadline);
-                    needsUpdate = true;
-                }
-                if (!Objects.equals(existingProduct.getLabelUrl(), labelUrl)) {
-                    existingProduct.setLabelUrl(labelUrl);
+                Set<ProductType> existingTypes = existingProduct.getProductTypes();
+                if (!existingTypes.equals(productTypes)) {
+                    existingTypes.clear();
+                    existingTypes.addAll(productTypes);
                     needsUpdate = true;
                 }
 
@@ -187,44 +180,23 @@ public class ProductBasicProcessor implements FileProcessor {
         }
     }
 
-    /**
-     * Pomocnicza metoda do bezpiecznego pobierania wartości String z komórki.
-     */
     private String getStringCellValue(Cell cell) {
-        if (cell == null) {
-            return null;
-        }
-        if (cell.getCellType() == CellType.STRING) {
-            return cell.getStringCellValue().trim();
-        }
-        if (cell.getCellType() == CellType.NUMERIC) {
-            // Traktuj numeryczne jako tekst
-            return String.valueOf((long) cell.getNumericCellValue());
-        }
+        if (cell == null) { return null; }
+        if (cell.getCellType() == CellType.STRING) { return cell.getStringCellValue().trim(); }
+        if (cell.getCellType() == CellType.NUMERIC) { return String.valueOf((long) cell.getNumericCellValue()); }
         return null;
     }
 
-    /**
-     * Pomocnicza metoda do bezpiecznego pobierania wartości LocalDate z komórki.
-     */
     private LocalDate getDateCellValue(Cell cell) {
-        if (cell == null) {
-            return null;
-        }
+        if (cell == null) { return null; }
         try {
             if (cell.getCellType() == CellType.NUMERIC) {
-                // Data w Excelu jest często liczbą
-                return cell.getDateCellValue().toInstant()
-                        .atZone(ZoneId.systemDefault())
-                        .toLocalDate();
+                return cell.getDateCellValue().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
             }
             if (cell.getCellType() == CellType.STRING) {
-                // Spróbuj parsować datę ze stringa
                 return LocalDate.parse(cell.getStringCellValue().trim());
             }
-        } catch (Exception e) {
-            // Ignoruj błędy parsowania daty, po prostu zwróć null
-        }
+        } catch (Exception e) {}
         return null;
     }
 }

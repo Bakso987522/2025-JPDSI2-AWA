@@ -52,54 +52,61 @@ public class DataSyncService {
             AttributesDto attributes = resource.getAttributes();
             if (attributes == null) continue;
 
-            // ZMIANA: Usunięto warunek filtrujący po "csv".
             String baseTitle = getBaseTitle(attributes.getTitle());
             latestFiles.putIfAbsent(baseTitle, resource);
         }
 
         System.out.println("--- ZNALEZIONE NAJNOWSZE PLIKI (" + latestFiles.size() + " szt.) ---");
-        System.out.println("\n--- ROZPOCZYNAM POBIERANIE I PARSOWANIE PLIKÓW ---");
+        System.out.println("\n--- ROZPOCZYNAM POBIERANIE I PARSOWANIE PLIKÓW (W KOLEJNOŚCI @Order) ---");
 
-        for (ResourceDto resource : latestFiles.values()) {
-            AttributesDto attributes = resource.getAttributes();
-            String fileUrl = attributes.getLink();
-            String title = attributes.getTitle();
-            String baseTitle = getBaseTitle(title);
-            String format = attributes.getFormat();
+        for (FileProcessor processor : this.fileProcessors) {
 
-            System.out.println("Przetwarzanie: " + title + " (Format: " + format + ")");
+            String supportedTitle = null;
+            ResourceDto resourceToProcess = null;
 
-            try {
-                // Krok 1: Pobierz surowe bajty
-                byte[] fileBytes = this.webClient.get()
-                        .uri(fileUrl)
-                        .retrieve()
-                        .bodyToMono(byte[].class)
-                        .block();
-
-                // Krok 2: Sprawdź czy pobrano zawartość
-                if (fileBytes != null && fileBytes.length > 0) {
-                    System.out.println("  Pobrano " + fileBytes.length + " bajtów.");
-
-                    boolean processed = false;
-                    for (FileProcessor processor : this.fileProcessors) {
-                        if (processor.supports(baseTitle)) {
-                            // Krok 3: Przekaż surowe bajty (fileBytes) do procesora
-                            processor.process(fileBytes);
-                            processed = true;
-                            break;
-                        }
-                    }
-                    if (!processed) {
-                        System.out.println("  Nie znaleziono procesora dla: " + baseTitle);
-                    }
-
-                } else {
-                    System.out.println("  Nie udało się pobrać zawartości (pusty plik).");
+            for (Map.Entry<String, ResourceDto> entry : latestFiles.entrySet()) {
+                String baseTitle = entry.getKey();
+                if (processor.supports(baseTitle)) {
+                    supportedTitle = baseTitle;
+                    resourceToProcess = entry.getValue();
+                    break;
                 }
+            }
 
-            } catch (Exception e) {
-                System.out.println("  Błąd podczas pobierania pliku " + title + ": " + e.getMessage());
+            if (resourceToProcess != null) {
+                AttributesDto attributes = resourceToProcess.getAttributes();
+                String fileUrl = attributes.getLink();
+                String title = attributes.getTitle();
+                String format = attributes.getFormat();
+
+                System.out.println("Przetwarzanie: " + title + " (Format: " + format + ")");
+
+                try {
+                    byte[] fileBytes = this.webClient.get()
+                            .uri(fileUrl)
+                            .retrieve()
+                            .bodyToMono(byte[].class)
+                            .block();
+
+                    if (fileBytes != null && fileBytes.length > 0) {
+                        System.out.println("  Pobrano " + fileBytes.length + " bajtów.");
+                        processor.process(fileBytes);
+                        latestFiles.remove(supportedTitle);
+                    } else {
+                        System.out.println("  Nie udało się pobrać zawartości (pusty plik).");
+                    }
+
+                } catch (Exception e) {
+                    System.out.println("  Błąd podczas pobierania pliku " + title + ": " + e.getMessage());
+                }
+                System.out.println("--------------------");
+            }
+        }
+
+        if (!latestFiles.isEmpty()) {
+            System.out.println("--- POMINIĘTE PLIKI (NIE ZNALEZIONO PROCESORA) ---");
+            for (ResourceDto resource : latestFiles.values()) {
+                System.out.println("  Nie znaleziono procesora dla: " + getBaseTitle(resource.getAttributes().getTitle()));
             }
             System.out.println("--------------------");
         }

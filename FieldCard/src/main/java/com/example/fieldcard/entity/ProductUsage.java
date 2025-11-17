@@ -31,11 +31,9 @@ public class ProductUsage {
     @Column(name = "is_minor_use")
     private boolean isMinorUse = false;
 
-    // --- NOWE POLE ---
     @Column(name="is_active", nullable = false)
     private boolean isActive = true;
 
-    // --- Gettery / Settery dla nowego pola ---
     public boolean isActive() {
         return isActive;
     }
@@ -43,10 +41,6 @@ public class ProductUsage {
     public void setActive(boolean active) {
         isActive = active;
     }
-
-    // --- Reszta getterów/setterów (wygeneruj je) ---
-    // (get/set dla id, product, crop, pest, dosage, etc.)
-    // ...
 
     public PlantProtectionProduct getProduct() { return product; }
     public void setProduct(PlantProtectionProduct product) { this.product = product; }

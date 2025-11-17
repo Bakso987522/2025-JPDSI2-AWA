@@ -3,6 +3,7 @@ package com.example.fieldcard.service.processors;
 import com.example.fieldcard.entity.Crop;
 import com.example.fieldcard.repository.CropRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,6 +13,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@Order(5)
 @Component
 public class CropProcessor extends AbstractCsvProcessor {
 

@@ -15,20 +15,22 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Arrays; // <-- NOWY IMPORT
-import java.util.Collections; // <-- NOWY IMPORT
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@Order(7)
 @Component
 public class ProductUsageProcessor implements FileProcessor {
 
@@ -118,7 +120,7 @@ public class ProductUsageProcessor implements FileProcessor {
         System.out.println("    [ProductUsageProcessor] Ładowanie istniejących zastosowań do mapy...");
         List<ProductUsage> allUsages = productUsageRepository.findAllWithRelationships();
         this.existingUsagesMap = allUsages.stream()
-                .collect(Collectors.toMap(this::buildUsageKey, Function.identity()));
+                .collect(Collectors.toMap(this::buildUsageKey, Function.identity(), (existing, replacement) -> existing));
         System.out.println("    [ProductUsageProcessor] Znaleziono " + this.existingUsagesMap.size() + " istniejących zastosowań w bazie.");
     }
 
@@ -140,9 +142,7 @@ public class ProductUsageProcessor implements FileProcessor {
         existingUsagesMap.clear();
     }
 
-    /**
-     * Dzieli tekst z komórki (np. "pszenica, żyto") na listę nazw ("pszenica", "żyto").
-     */
+
     private List<String> parseNames(String cellValue) {
         if (cellValue == null || cellValue.trim().isEmpty()) {
             return Collections.emptyList();
@@ -200,7 +200,6 @@ public class ProductUsageProcessor implements FileProcessor {
 
                         this.usagesToSaveOrUpdate.add(newUsage);
                     } else {
-                        // 2. ISTNIEJĄCE ZASTOSOWANIE
                         boolean needsUpdate = false;
                         if (!existingUsage.isActive()) {
                             existingUsage.setActive(true);

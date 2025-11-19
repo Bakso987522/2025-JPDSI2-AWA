@@ -54,4 +54,9 @@ public class ProductUsage {
     public void setApplicationTiming(String applicationTiming) { this.applicationTiming = applicationTiming; }
     public boolean isMinorUse() { return isMinorUse; }
     public void setMinorUse(boolean minorUse) { this.isMinorUse = minorUse; }
+
+    @Override
+    public String toString() {
+        return "ProductUsage [id=" + id + ", product=" + product + ", crop=" + crop + ", pest=" + pest + ", dosage=" + dosage + ", applicationTiming=" + applicationTiming + ", isMinorUse=" + isMinorUse + "]";
+    }
 }

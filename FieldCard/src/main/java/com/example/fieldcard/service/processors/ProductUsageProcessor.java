@@ -21,12 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -43,7 +38,7 @@ public class ProductUsageProcessor implements FileProcessor {
     private Map<String, Crop> cropMapByName;
     private Map<String, Pest> pestMapByName;
 
-    private Map<String, ProductUsage> existingUsagesMap;
+    private Map<String, List<ProductUsage>> existingUsagesMap;
     private List<ProductUsage> usagesToSaveOrUpdate;
 
     @Autowired
@@ -65,7 +60,7 @@ public class ProductUsageProcessor implements FileProcessor {
     @Override
     @Transactional
     public void process(byte[] fileContent) {
-        System.out.println("    [ProductUsageProcessor] Rozpoczynam SYNCHRONIZACJĘ 'rejestr zastosowań' (Soft Delete)...");
+        System.out.println("    [ProductUsageProcessor] Rozpoczynam SYNCHRONIZACJĘ 'rejestr zastosowań'...");
 
         loadCaches();
         loadExistingUsagesMap();
@@ -83,15 +78,18 @@ public class ProductUsageProcessor implements FileProcessor {
                 }
             }
         } catch (Exception e) {
-            System.out.println("    [ProductUsageProcessor] Krytyczny błąd podczas parsowania XLSX: " + e.getMessage());
+            System.out.println("    [ProductUsageProcessor] Krytyczny błąd XLSX: " + e.getMessage());
+            e.printStackTrace();
         }
 
         int deactivatedCount = 0;
-        for (ProductUsage usageToDeactivate : this.existingUsagesMap.values()) {
-            if (usageToDeactivate.isActive()) {
-                usageToDeactivate.setActive(false);
-                this.usagesToSaveOrUpdate.add(usageToDeactivate);
-                deactivatedCount++;
+        for (List<ProductUsage> remainingUsages : this.existingUsagesMap.values()) {
+            for (ProductUsage usageToDeactivate : remainingUsages) {
+                if (usageToDeactivate.isActive()) {
+                    usageToDeactivate.setActive(false);
+                    this.usagesToSaveOrUpdate.add(usageToDeactivate);
+                    deactivatedCount++;
+                }
             }
         }
 
@@ -99,15 +97,14 @@ public class ProductUsageProcessor implements FileProcessor {
             productUsageRepository.saveAll(usagesToSaveOrUpdate);
         }
 
-        System.out.println("    [ProductUsageProcessor] Synchronizacja zakończona.");
-        System.out.println("    [ProductUsageProcessor] Przetworzono (zapis/aktualizacja): " + usagesToSaveOrUpdate.size() + " rekordów.");
-        System.out.println("    [ProductUsageProcessor] Oznaczono jako nieaktywne: " + deactivatedCount + " rekordów.");
+        System.out.println("    [ProductUsageProcessor] Zakończono.");
+        System.out.println("    [ProductUsageProcessor] Zapisano/Zaktualizowano: " + usagesToSaveOrUpdate.size());
+        System.out.println("    [ProductUsageProcessor] Wyłączono (soft delete): " + deactivatedCount);
 
         clearCaches();
     }
 
     private void loadCaches() {
-        System.out.println("    [ProductUsageProcessor] Ładowanie słowników do pamięci...");
         productMapBySorId = productRepository.findAll().stream()
                 .collect(Collectors.toMap(PlantProtectionProduct::getSorId, Function.identity()));
         cropMapByName = cropRepository.findAll().stream()
@@ -117,17 +114,18 @@ public class ProductUsageProcessor implements FileProcessor {
     }
 
     private void loadExistingUsagesMap() {
-        System.out.println("    [ProductUsageProcessor] Ładowanie istniejących zastosowań do mapy...");
         List<ProductUsage> allUsages = productUsageRepository.findAllWithRelationships();
         this.existingUsagesMap = allUsages.stream()
-                .collect(Collectors.toMap(this::buildUsageKey, Function.identity(), (existing, replacement) -> existing));
-        System.out.println("    [ProductUsageProcessor] Znaleziono " + this.existingUsagesMap.size() + " istniejących zastosowań w bazie.");
+                .collect(Collectors.groupingBy(
+                        this::buildUsageKey,
+                        Collectors.toCollection(ArrayList::new)
+                ));
     }
 
     private String buildUsageKey(ProductUsage usage) {
-        String sorId = usage.getProduct().getSorId();
-        String cropName = usage.getCrop().getName();
-        String pestName = usage.getPest().getName();
+        String sorId = usage.getProduct() != null ? usage.getProduct().getSorId() : "null";
+        String cropName = usage.getCrop() != null ? usage.getCrop().getName() : "null";
+        String pestName = usage.getPest() != null ? usage.getPest().getName() : "null";
         return sorId + "|" + cropName + "|" + pestName;
     }
 
@@ -141,7 +139,6 @@ public class ProductUsageProcessor implements FileProcessor {
         pestMapByName.clear();
         existingUsagesMap.clear();
     }
-
 
     private List<String> parseNames(String cellValue) {
         if (cellValue == null || cellValue.trim().isEmpty()) {
@@ -163,16 +160,12 @@ public class ProductUsageProcessor implements FileProcessor {
             String minorUseStr = getStringCellValue(row.getCell(6));
 
             PlantProtectionProduct product = productMapBySorId.get(sorId);
-            if (product == null) {
-                return;
-            }
+            if (product == null) return;
 
             List<String> cropNames = parseNames(cropNamesStr);
             List<String> pestNames = parseNames(pestNamesStr);
 
-            if (cropNames.isEmpty() || pestNames.isEmpty()) {
-                return;
-            }
+            if (cropNames.isEmpty() || pestNames.isEmpty()) return;
 
             for (String cropName : cropNames) {
                 for (String pestName : pestNames) {
@@ -180,15 +173,27 @@ public class ProductUsageProcessor implements FileProcessor {
                     Crop crop = cropMapByName.get(cropName);
                     Pest pest = pestMapByName.get(pestName);
 
-                    if (crop == null || pest == null) {
-                        continue;
-                    }
+                    if (crop == null || pest == null) continue;
 
                     String key = buildUsageKey(sorId, cropName, pestName);
 
-                    ProductUsage existingUsage = this.existingUsagesMap.remove(key);
+                    List<ProductUsage> candidates = this.existingUsagesMap.get(key);
+                    ProductUsage matchedUsage = null;
 
-                    if (existingUsage == null) {
+                    if (candidates != null && !candidates.isEmpty()) {
+                        Iterator<ProductUsage> iterator = candidates.iterator();
+                        while (iterator.hasNext()) {
+                            ProductUsage candidate = iterator.next();
+                            if (textsAreSame(candidate.getDosage(), dosage) &&
+                                    textsAreSame(candidate.getApplicationTiming(), applicationTiming)) {
+                                matchedUsage = candidate;
+                                iterator.remove();
+                                break;
+                            }
+                        }
+                    }
+
+                    if (matchedUsage == null) {
                         ProductUsage newUsage = new ProductUsage();
                         newUsage.setProduct(product);
                         newUsage.setCrop(crop);
@@ -201,35 +206,49 @@ public class ProductUsageProcessor implements FileProcessor {
                         this.usagesToSaveOrUpdate.add(newUsage);
                     } else {
                         boolean needsUpdate = false;
-                        if (!existingUsage.isActive()) {
-                            existingUsage.setActive(true);
+
+                        if (!matchedUsage.isActive()) {
+                            matchedUsage.setActive(true);
                             needsUpdate = true;
                         }
-                        if (!Objects.equals(existingUsage.getDosage(), dosage)) {
-                            existingUsage.setDosage(dosage);
+
+                        boolean isMinor = "TAK".equalsIgnoreCase(minorUseStr);
+                        if (matchedUsage.isMinorUse() != isMinor) {
+                            matchedUsage.setMinorUse(isMinor);
                             needsUpdate = true;
                         }
-                        if (!Objects.equals(existingUsage.getApplicationTiming(), applicationTiming)) {
-                            existingUsage.setApplicationTiming(applicationTiming);
+
+                        if (!Objects.equals(matchedUsage.getDosage(), dosage)) {
+                            matchedUsage.setDosage(dosage);
+                            needsUpdate = true;
+                        }
+                        if (!Objects.equals(matchedUsage.getApplicationTiming(), applicationTiming)) {
+                            matchedUsage.setApplicationTiming(applicationTiming);
                             needsUpdate = true;
                         }
 
                         if (needsUpdate) {
-                            this.usagesToSaveOrUpdate.add(existingUsage);
+                            this.usagesToSaveOrUpdate.add(matchedUsage);
                         }
                     }
                 }
             }
 
         } catch (Exception e) {
-            System.out.println("    [ProductUsageProcessor] Błąd wierszu Excela: " + row.getRowNum() + ". Błąd: " + e.getMessage());
+            System.out.println("    [ProductUsageProcessor] Błąd wiersza: " + row.getRowNum() + ". " + e.getMessage());
         }
     }
 
+    private boolean textsAreSame(String dbText, String fetchedText) {
+        if (dbText == null) dbText = "";
+        if (fetchedText == null) fetchedText = "";
+        String normDb = dbText.trim().replaceAll("\\s+", " ").toLowerCase();
+        String normFetch = fetchedText.trim().replaceAll("\\s+", " ").toLowerCase();
+        return normDb.equals(normFetch);
+    }
+
     private String getStringCellValue(Cell cell) {
-        if (cell == null) {
-            return null;
-        }
+        if (cell == null) return null;
         if (cell.getCellType() == CellType.STRING) {
             return cell.getStringCellValue().trim();
         }

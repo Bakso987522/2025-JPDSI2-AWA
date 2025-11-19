@@ -15,6 +15,8 @@ public interface PlantProtectionProductRepository extends JpaRepository<PlantPro
 
     List<PlantProtectionProduct> findAllByIsActive(boolean isActive);
 
-    @Query("SELECT p FROM PlantProtectionProduct p LEFT JOIN FETCH p.productTypes")
-    List<PlantProtectionProduct> findAllWithProductTypes();
+    @Query("SELECT p FROM PlantProtectionProduct p " +
+            "LEFT JOIN FETCH p.productTypes " +
+            "LEFT JOIN FETCH p.activeSubstances")
+    List<PlantProtectionProduct> findAllWithProductTypesAndSubstances();
 }

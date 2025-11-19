@@ -26,9 +26,6 @@ public class PlantProtectionProduct {
     @Column(name = "permit_number")
     private String permitNumber;
 
-    @Column(name = "active_substances_string", columnDefinition = "text")
-    private String activeSubstancesString;
-
     @ManyToMany(fetch = FetchType.LAZY, cascade = { CascadeType.PERSIST, CascadeType.MERGE })
     @JoinTable(
             name = "product_product_types",
@@ -36,6 +33,13 @@ public class PlantProtectionProduct {
             inverseJoinColumns = @JoinColumn(name = "product_type_id")
     )
     private Set<ProductType> productTypes = new HashSet<>();
+
+    @OneToMany(
+            mappedBy = "product",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private Set<ProductActiveSubstance> activeSubstances = new HashSet<>();
 
     @Column(name = "permit_date")
     private LocalDate permitDate;
@@ -55,14 +59,6 @@ public class PlantProtectionProduct {
     public PlantProtectionProduct() {
     }
 
-    public Set<ProductType> getProductTypes() {
-        return productTypes;
-    }
-
-    public void setProductTypes(Set<ProductType> productTypes) {
-        this.productTypes = productTypes;
-    }
-
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public String getSorId() { return sorId; }
@@ -73,8 +69,10 @@ public class PlantProtectionProduct {
     public void setManufacturer(String manufacturer) { this.manufacturer = manufacturer; }
     public String getPermitNumber() { return permitNumber; }
     public void setPermitNumber(String permitNumber) { this.permitNumber = permitNumber; }
-    public String getActiveSubstancesString() { return activeSubstancesString; }
-    public void setActiveSubstancesString(String activeSubstancesString) { this.activeSubstancesString = activeSubstancesString; }
+    public Set<ProductType> getProductTypes() { return productTypes; }
+    public void setProductTypes(Set<ProductType> productTypes) { this.productTypes = productTypes; }
+    public Set<ProductActiveSubstance> getActiveSubstances() { return activeSubstances; }
+    public void setActiveSubstances(Set<ProductActiveSubstance> activeSubstances) { this.activeSubstances = activeSubstances; }
     public LocalDate getPermitDate() { return permitDate; }
     public void setPermitDate(LocalDate permitDate) { this.permitDate = permitDate; }
     public LocalDate getSalesDeadline() { return salesDeadline; }

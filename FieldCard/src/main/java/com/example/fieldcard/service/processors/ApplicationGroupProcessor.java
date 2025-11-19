@@ -41,9 +41,7 @@ public class ApplicationGroupProcessor extends AbstractCsvProcessor {
 
         List<ApplicationGroup> existingGroups = repository.findAll();
 
-        // ===================================
-        // === TUTAJ BYŁ BŁĄD (linia ~40) ===
-        // Zmieniamy klucz mapy z getGroupId() na getName()
+
         this.existingGroupsMap = existingGroups.stream()
                 .collect(Collectors.toMap(ApplicationGroup::getName, Function.identity()));
 

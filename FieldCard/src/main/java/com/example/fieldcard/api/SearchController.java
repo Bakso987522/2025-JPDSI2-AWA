@@ -3,6 +3,8 @@ package com.example.fieldcard.api;
 import com.example.fieldcard.core.searcher.service.ProductSearchService;
 import com.example.fieldcard.dto.request.SearchCriteriaDto;
 import com.example.fieldcard.dto.response.SearchResponseDto;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,7 +20,7 @@ public class SearchController {
         this.searchService = searchService;
     }
     @GetMapping("/search")
-    public SearchResponseDto search(@ModelAttribute SearchCriteriaDto criteria) {
-        return searchService.search(criteria);
+    public SearchResponseDto search(@ModelAttribute SearchCriteriaDto criteria, @PageableDefault(size = 30) Pageable pageable) {
+        return searchService.search(criteria, pageable);
     }
 }

@@ -6,10 +6,12 @@ import com.example.fieldcard.data.specification.ProductSpecification;
 import com.example.fieldcard.dto.request.SearchCriteriaDto;
 import com.example.fieldcard.dto.response.ProductSearchResultDto;
 import com.example.fieldcard.dto.response.SearchResponseDto;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import org.springframework.data.domain.Pageable;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,14 +26,17 @@ public class ProductSearchService {
 
 
     @Transactional(readOnly = true)
-    public SearchResponseDto search(SearchCriteriaDto criteria) {
+    public SearchResponseDto search(SearchCriteriaDto criteria, Pageable pageable) {
         SearchResponseDto response = new SearchResponseDto();
 
         ProductSpecification spec = new ProductSpecification(criteria);
-        List<PlantProtectionProduct> exactMatches = productRepository.findAll(spec);
+        Page<PlantProtectionProduct> exactMatches = productRepository.findAll(spec, pageable);
 
         if (!exactMatches.isEmpty()) {
-            response.setResults(mapToDtos(exactMatches));
+            response.setResults(mapToDtos(exactMatches.getContent()));
+            response.setTotalPages(exactMatches.getTotalPages());
+            response.setTotalElements(exactMatches.getTotalElements());
+            response.setCurrentPage(exactMatches.getNumber());
         } else {
             if (StringUtils.hasText(criteria.getQuery())) {
                 List<PlantProtectionProduct> suggestions = productRepository.findTop5SimilarProducts(criteria.getQuery());

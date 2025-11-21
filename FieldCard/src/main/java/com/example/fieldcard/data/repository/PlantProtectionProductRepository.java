@@ -26,7 +26,7 @@ public interface PlantProtectionProductRepository extends
 
     @Query(value = """
         SELECT * FROM plant_protection_product
-        WHERE similarity(name, :query) > 0.2
+        WHERE similarity(name, :query) > 0.1
         ORDER BY similarity(name, :query) DESC
         LIMIT 5
     """, nativeQuery = true)

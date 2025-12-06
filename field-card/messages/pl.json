@@ -1,4 +1,32 @@
 {
-  "app.name" : "FieldCard"
-
+  "AppName": "FieldCard",
+  "HomePage": {
+    "name": "Hello world!"
+  },
+  "Navbar": {
+    "PlantProtectionProducts": {
+      "title": "Środki ochrony roślin",
+      "url": "/produkty",
+      "icon": "LeafIcon",
+      "isActive": false,
+      "items": [
+        {
+          "title": "Vademecum",
+          "url": "/produkty/vademecum"
+        },
+        {
+          "title": "Kalkulator mieszania",
+          "url": "/produkty/kalkulator"
+        },
+        {
+          "title": "Moje przepisy",
+          "url": "/produkty/moje-przepisy"
+        },
+        {
+          "title": "Karty charakterystyki (KCH)",
+          "url": "/produkty/karty-charakterystyki"
+        }
+      ]
+    }
+  }
 }

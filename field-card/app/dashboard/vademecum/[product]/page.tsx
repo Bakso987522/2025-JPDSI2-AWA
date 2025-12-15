@@ -24,13 +24,14 @@ export default function Page() {
                     <Breadcrumb>
                         <BreadcrumbList>
                             <BreadcrumbItem>
-                                <BreadcrumbPage>Main page </BreadcrumbPage>
+                                <BreadcrumbPage>Wyszukiwarka ŚOR</BreadcrumbPage>
                             </BreadcrumbItem>
                         </BreadcrumbList>
                     </Breadcrumb>
                 </header>
 
                 <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+                    <ProductSearch />
                 </div>
             </SidebarInset>
         </SidebarProvider>

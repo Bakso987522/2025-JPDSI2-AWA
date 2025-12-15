@@ -29,12 +29,12 @@ export function ProductSearch() {
             {isLoading && <div className="text-muted-foreground animate-pulse">Pobieranie danych... 🍃</div>}
 
             {isError && <div className="text-red-500 font-medium">Nie udało się pobrać produktów. Sprawdź połączenie.</div>}
-            {!isLoading && data?.suggestions.length > 0 && (
+            {!isLoading && data?.suggestions?.length > 0 && (
                 <p className="text-center text-muted-foreground py-8">Czy miałeś na myśli?</p>
             )}
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {data?.results.map((product)  => (
+                {data?.results?.map((product)  => (
                     <Card key={product.sorId} className="hover:shadow-md transition-shadow cursor-pointer">
                         <CardHeader className="pb-2">
                             <CardTitle className="text-lg text-primary">{product.name}</CardTitle>
@@ -49,7 +49,7 @@ export function ProductSearch() {
                         </CardContent>
                     </Card>
                 ))}
-                {data?.suggestions.map((product)  => (
+                {data?.suggestions?.map((product)  => (
                     <Card key={product.sorId} className="hover:shadow-md transition-shadow cursor-pointer">
                         <CardHeader className="pb-2">
                             <CardTitle className="text-lg text-primary">{product.name}</CardTitle>
@@ -66,7 +66,7 @@ export function ProductSearch() {
                 ))}
             </div>
 
-            {!isLoading && data?.results.length === 0 && data?.suggestions.length === 0 && (
+            {!isLoading && data?.results?.length === 0 && data?.suggestions.length === 0 && (
                 <p className="text-center text-muted-foreground py-8">Nie znaleziono produktów pasujących do zapytania.</p>
             )}
 

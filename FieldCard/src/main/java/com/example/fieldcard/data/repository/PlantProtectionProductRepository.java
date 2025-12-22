@@ -31,4 +31,6 @@ public interface PlantProtectionProductRepository extends
         LIMIT 5
     """, nativeQuery = true)
     List<PlantProtectionProduct> findTop5SimilarProducts(@Param("query") String query);
+
+
 }

@@ -18,9 +18,10 @@ interface PageProps {
     }>;
 }
 
-async function getProductData(sorId: string) {
+async function getProductData(id: string) {
     try {
-        const res = await fetch(`http://localhost:8080/api/products/details?sorId=${sorId}`, {
+
+        const res = await fetch(`http://localhost:8080/api/products/${id}`, {
             cache: "no-store",
         });
 
@@ -38,9 +39,9 @@ async function getProductData(sorId: string) {
 export default async function Page({ params }: PageProps) {
     const resolvedParams = await params;
 
-    const sorId = decodeURIComponent(resolvedParams.product);
+    const id = resolvedParams.product;
 
-    const productData = await getProductData(encodeURIComponent(sorId));
+    const productData = await getProductData(id);
 
     return (
         <SidebarProvider>
@@ -61,7 +62,7 @@ export default async function Page({ params }: PageProps) {
                 <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
                     <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
                         <h2 className="text-xl font-semibold mb-4">
-                            ID: <span className="font-mono text-blue-600">{sorId}</span>
+                            ID Bazy Danych: <span className="font-mono text-blue-600">{id}</span>
                         </h2>
 
                         <h3 className="text-sm font-medium text-muted-foreground mb-2">Odpowiedź z serwera (JSON):</h3>
@@ -75,9 +76,9 @@ export default async function Page({ params }: PageProps) {
                                 <p className="font-bold">Nie udało się pobrać danych.</p>
                                 <p className="text-sm">Diagnoza:</p>
                                 <ul className="list-disc list-inside text-sm ml-2 mt-1">
-                                    <li>ID z URL: "{sorId}"</li>
-                                    <li>Czy backend działa na porcie 8080?</li>
-                                    <li>Czy produkt o tym ID istnieje w bazie?</li>
+                                    <li>Szukane ID: "{id}"</li>
+                                    <li>Czy endpoint @GetMapping("/&#123;id&#125;") w Springu jest gotowy?</li>
+                                    <li>Czy produkt o ID {id} (nie mylić z sorId) istnieje w tabeli?</li>
                                 </ul>
                             </div>
                         )}

@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -66,18 +67,47 @@ public class ProductSearchService {
     private ProductSearchResultDto mapToDto(PlantProtectionProduct entity) {
         ProductSearchResultDto dto = new ProductSearchResultDto();
 
-
         dto.setId(entity.getId());
-
         dto.setSorId(entity.getSorId());
         dto.setName(entity.getName());
         dto.setManufacturer(entity.getManufacturer());
 
-        String substances = entity.getActiveSubstances().stream()
+        List<String> substances = entity.getActiveSubstances().stream()
                 .map(link -> link.getActiveSubstance().getName())
-                .collect(Collectors.joining(", "));
-
+                .collect(Collectors.toList());
         dto.setActiveSubstance(substances);
+
+        if (entity.getProductTypes() != null && !entity.getProductTypes().isEmpty()) {
+            List<String> types = entity.getProductTypes().stream()
+                    .map(pt -> pt.getName())
+                    .collect(Collectors.toList());
+            dto.setType(types);
+        } else {
+            dto.setType(List.of("Inny"));
+        }
+
+        if (entity.getUsages() != null && !entity.getUsages().isEmpty()) {
+            List<String> distinctCrops = entity.getUsages().stream()
+                    .filter(u -> u.getCrop() != null)
+                    .map(u -> u.getCrop().getName())
+                    .distinct()
+                    .sorted()
+                    .limit(15)
+                    .collect(Collectors.toList());
+            dto.setCrops(distinctCrops);
+
+            List<String> distinctPests = entity.getUsages().stream()
+                    .filter(u -> u.getPest() != null)
+                    .map(u -> u.getPest().getName())
+                    .distinct()
+                    .sorted()
+                    .limit(15)
+                    .collect(Collectors.toList());
+            dto.setPests(distinctPests);
+        } else {
+            dto.setCrops(Collections.emptyList());
+            dto.setPests(Collections.emptyList());
+        }
 
         return dto;
     }
@@ -85,21 +115,30 @@ public class ProductSearchService {
     private ProductDetailsDto mapToDetailsDto(PlantProtectionProduct entity) {
         ProductDetailsDto dto = new ProductDetailsDto();
 
-
+        dto.setId(entity.getId());
         dto.setSorId(entity.getSorId());
         dto.setName(entity.getName());
         dto.setManufacturer(entity.getManufacturer());
         dto.setPermitNumber(entity.getPermitNumber());
-        dto.setPermitDate(entity.getPermitDate());
+        dto.setSalesDeadline(entity.getSalesDeadline());
         dto.setUseDeadline(entity.getUseDeadline());
         dto.setLabelUrl(entity.getLabelUrl());
+
+        if (entity.getProductTypes() != null && !entity.getProductTypes().isEmpty()) {
+            List<String> types = entity.getProductTypes().stream()
+                    .map(pt -> pt.getName())
+                    .collect(Collectors.toList());
+            dto.setType(types);
+        } else {
+            dto.setType(List.of("Inny"));
+        }
 
         List<String> substances = entity.getActiveSubstances().stream()
                 .map(pas -> pas.getActiveSubstance().getName() + " (" + pas.getContent() + ")")
                 .collect(Collectors.toList());
         dto.setActiveSubstances(substances);
 
-        if (entity.getUsages() != null) {
+        if (entity.getUsages() != null && !entity.getUsages().isEmpty()) {
             List<ProductUsageDto> usages = entity.getUsages().stream()
                     .map(usage -> new ProductUsageDto(
                             usage.getCrop() != null ? usage.getCrop().getName() : "Nieznana uprawa",
@@ -108,6 +147,26 @@ public class ProductSearchService {
                     ))
                     .collect(Collectors.toList());
             dto.setUsages(usages);
+
+            List<String> distinctCrops = entity.getUsages().stream()
+                    .filter(u -> u.getCrop() != null)
+                    .map(u -> u.getCrop().getName())
+                    .distinct()
+                    .sorted()
+                    .collect(Collectors.toList());
+            dto.setCrops(distinctCrops);
+
+            List<String> distinctPests = entity.getUsages().stream()
+                    .filter(u -> u.getPest() != null)
+                    .map(u -> u.getPest().getName())
+                    .distinct()
+                    .sorted()
+                    .collect(Collectors.toList());
+            dto.setPests(distinctPests);
+        } else {
+            dto.setUsages(Collections.emptyList());
+            dto.setCrops(Collections.emptyList());
+            dto.setPests(Collections.emptyList());
         }
 
         return dto;

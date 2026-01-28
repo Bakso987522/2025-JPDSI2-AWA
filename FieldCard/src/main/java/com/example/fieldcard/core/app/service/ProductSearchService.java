@@ -1,4 +1,4 @@
-package com.example.fieldcard.core.searcher.service;
+package com.example.fieldcard.core.app.service;
 
 import com.example.fieldcard.data.entity.PlantProtectionProduct;
 import com.example.fieldcard.data.repository.PlantProtectionProductRepository;

@@ -1,23 +1,30 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+interface User {
+    email: string;
+    name?: string;
+}
+
 interface AuthState {
-    token: string | null;
+    user: User | null;
     isAuthenticated: boolean;
-    setToken: (token: string) => void;
+    login: (user: User) => void;
     logout: () => void;
+    name: string;
 }
 
 export const useAuthStore = create<AuthState>()(
     persist(
         (set) => ({
-            token: null,
+            user: null,
             isAuthenticated: false,
-            setToken: (token: string) => set({ token, isAuthenticated: true }),
-            logout: () => set({ token: null, isAuthenticated: false }),
+            login: (user) => set({ user, isAuthenticated: true }),
+            logout: () => set({ user: null, isAuthenticated: false }),
+            name: "",
         }),
         {
-            name: 'fieldcard-auth-storage',
+            name: 'fieldcard-user-storage',
         }
     )
 );

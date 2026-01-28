@@ -72,7 +72,11 @@ export default async function Page({ params }: PageProps) {
                     <Breadcrumb>
                         <BreadcrumbList>
                             <BreadcrumbItem>
-                                <BreadcrumbLink href="/dashboard/vademecum">Wyszukiwarka</BreadcrumbLink>
+                                <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+                            </BreadcrumbItem>
+                            <BreadcrumbSeparator />
+                            <BreadcrumbItem>
+                                <BreadcrumbLink href="/dashboard/vademecum">Vademecum</BreadcrumbLink>
                             </BreadcrumbItem>
                             <BreadcrumbSeparator />
                             <BreadcrumbItem>

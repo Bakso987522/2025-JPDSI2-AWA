@@ -13,6 +13,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import com.example.fieldcard.core.security.filter.RestAuthenticationEntryPoint;
 
 import java.util.List;
 
@@ -22,10 +23,16 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final AuthenticationProvider authenticationProvider;
+    private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter, AuthenticationProvider authenticationProvider) {
+    public SecurityConfig(
+            JwtAuthenticationFilter jwtAuthFilter,
+            AuthenticationProvider authenticationProvider,
+            RestAuthenticationEntryPoint restAuthenticationEntryPoint
+    ) {
         this.jwtAuthFilter = jwtAuthFilter;
         this.authenticationProvider = authenticationProvider;
+        this.restAuthenticationEntryPoint = restAuthenticationEntryPoint;
     }
 
     @Bean
@@ -33,16 +40,17 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/dictionaries/**").permitAll()
-                        .requestMatchers("/api/products/**").permitAll()
+                        .requestMatchers("/api/auth/**", "/auth/**", "/error").permitAll()
                         .anyRequest().authenticated()
                 )
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
                 .authenticationProvider(authenticationProvider)
+                .exceptionHandling(ex ->
+                        ex.authenticationEntryPoint(restAuthenticationEntryPoint)
+                )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

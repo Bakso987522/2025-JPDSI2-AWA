@@ -37,6 +37,13 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ slug: s
             body,
             cache: "no-store",
         });
+        if (springResponse.status === 401) {
+            cookieStore.delete("token");
+            return NextResponse.json(
+                { error: "Sesja wygasła lub jest nieprawidłowa" },
+                { status: 401 }
+            );
+        }
 
         let data = {};
         const contentType = springResponse.headers.get("content-type");

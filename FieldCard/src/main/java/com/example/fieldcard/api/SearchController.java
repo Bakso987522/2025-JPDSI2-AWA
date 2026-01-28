@@ -1,6 +1,6 @@
 package com.example.fieldcard.api;
 
-import com.example.fieldcard.core.searcher.service.ProductSearchService;
+import com.example.fieldcard.core.app.service.ProductSearchService;
 import com.example.fieldcard.dto.request.SearchCriteriaDto;
 import com.example.fieldcard.dto.response.ProductDetailsDto;
 import com.example.fieldcard.dto.response.SearchResponseDto;
@@ -20,7 +20,7 @@ public class SearchController {
     }
 
     @GetMapping("/search")
-    public SearchResponseDto search(@ModelAttribute SearchCriteriaDto criteria, @PageableDefault(size = 30) Pageable pageable) {
+    public SearchResponseDto search(@ModelAttribute SearchCriteriaDto criteria, @PageableDefault(size = 24) Pageable pageable) {
         return searchService.search(criteria, pageable);
     }
 

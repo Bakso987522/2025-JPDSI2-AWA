@@ -4,7 +4,7 @@ import {
     Breadcrumb,
     BreadcrumbItem,
     BreadcrumbList,
-    BreadcrumbPage,
+    BreadcrumbPage, BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { Separator } from "@/components/ui/separator"
 import {
@@ -12,6 +12,7 @@ import {
     SidebarProvider,
     SidebarTrigger,
 } from "@/components/ui/sidebar"
+import Link from "next/link";
 
 export default function Page() {
     return (
@@ -22,7 +23,11 @@ export default function Page() {
                     <Breadcrumb>
                         <BreadcrumbList>
                             <BreadcrumbItem>
-                                <BreadcrumbPage>Wyszukiwarka ŚOR</BreadcrumbPage>
+                                <BreadcrumbPage><Link href={"/dashboard"}>Dashboard</Link></BreadcrumbPage>
+                            </BreadcrumbItem>
+                            <BreadcrumbSeparator />
+                            <BreadcrumbItem>
+                                <BreadcrumbPage>Vademecum</BreadcrumbPage>
                             </BreadcrumbItem>
                         </BreadcrumbList>
                     </Breadcrumb>

@@ -1,54 +1,52 @@
-import { useMutation } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
-import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useAuthStore } from '@/store/useAuthStore';
+import { useMutation } from "@tanstack/react-query";
+import { useAuthStore } from "@/store/useAuthStore";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 
 const loginSchema = z.object({
-    email: z.string().email("Niepoprawny format adresu email"),
-    password: z.string().min(6, "Hasło musi mieć co najmniej 6 znaków"),
+    email: z.string().email("Nieprawidłowy email"),
+    password: z.string().min(6, "Hasło musi mieć min. 6 znaków"),
 });
 
-export type LoginFormValues = z.infer<typeof loginSchema>;
+type LoginFormValues = z.infer<typeof loginSchema>;
 
 export const useLogin = () => {
+    const { login } = useAuthStore();
     const router = useRouter();
-    const setToken = useAuthStore((state) => state.setToken);
 
     const form = useForm<LoginFormValues>({
         resolver: zodResolver(loginSchema),
-        defaultValues: { email: '', password: '' },
+        defaultValues: { email: "", password: "" },
     });
 
     const mutation = useMutation({
         mutationFn: async (data: LoginFormValues) => {
-            const response = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+            const res = await fetch("/api/auth/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(data),
             });
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.message || 'Błąd logowania');
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || "Błąd logowania");
             }
-
-            return response.json();
+            return res.json();
         },
-        onSuccess: (data) => {
-            setToken(data.token || "logged-in");
-            router.push('/dashboard');
+        onSuccess: (data, variables) => {
+            login({ email: variables.email, name: data.name });
+            router.push("/dashboard");
         },
-        onError: (error: any) => {
-            console.error("Błąd logowania:", error);
-            form.setError('root', { message: error.message || "Nieprawidłowy email lub hasło" });
+        onError: (error) => {
+            form.setError("root", { message: error.message });
         },
     });
 
-    const onSubmit = (data: LoginFormValues) => {
-        mutation.mutate(data);
+    return {
+        form,
+        onSubmit: (data: LoginFormValues) => mutation.mutate(data),
+        isPending: mutation.isPending,
     };
-
-    return { form, onSubmit, isPending: mutation.isPending };
 };

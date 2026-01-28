@@ -1,42 +1,42 @@
-// app/api/auth/register/route.ts
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
 
-export async function POST(request: Request) {
-    const body = await request.json();
-    const backendUrl = process.env.SPRING_API_URL || 'http://localhost:8080/api';
+const SPRING_API_URL = process.env.SPRING_API_URL || "http://localhost:8080/api";
 
+export async function POST(req: NextRequest) {
     try {
-        const res = await fetch(`${backendUrl}/auth/register`, {
+        const body = await req.json();
+
+        const springRes = await fetch(`${SPRING_API_URL}/auth/register`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body),
         });
 
-        if (!res.ok) {
+        if (!springRes.ok) {
+            const errorData = await springRes.json().catch(() => ({}));
             return NextResponse.json(
-                { message: "Błąd rejestracji w backendzie" },
-                { status: res.status }
+                { error: errorData.message || "Błąd rejestracji" },
+                { status: springRes.status }
             );
         }
 
-        const data = await res.json();
+        const data = await springRes.json();
         const token = data.token;
 
-        const response = NextResponse.json({ success: true, token: token });
+        if (token) {
+            const cookieStore = await cookies();
+            cookieStore.set("token", token, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === "production",
+                sameSite: "strict",
+                path: "/",
+            });
+        }
 
-        response.cookies.set({
-            name: "token",
-            value: token,
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
-            path: "/",
-            maxAge: 60 * 60 * 24,
-        });
-
-        return response;
+        return NextResponse.json({ success: true });
 
     } catch (error) {
-        return NextResponse.json({ message: "Serwer nie odpowiada" }, { status: 500 });
+        return NextResponse.json({ error: "Błąd serwera" }, { status: 500 });
     }
 }

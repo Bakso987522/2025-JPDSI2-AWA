@@ -1,127 +1,83 @@
-import {SquareTerminal, Bot, BookOpen, LifeBuoy, Frame, PieChart, Map, Settings2, Send, Tractor} from "lucide-react";
+import {
+    LayoutDashboard,
+    Tractor,
+    Sprout,
+    BookOpen,
+    FlaskConical,
+    Bug,
+    Settings2,
+    Calendar,
+    FileText,
+    CloudSun,
+    Leaf,
+    ShieldAlert
+} from "lucide-react";
 
 const sidebarData = {
-    logo: Tractor,
+    logo: Sprout,
     user: {
-        name: "shadcn",
-        email: "m@example.com",
-        avatar: "/avatars/shadcn.jpg",
+        name: "",
+        email: "",
+        avatar: "",
     },
     navMain: [
         {
-            title: "Playground",
-            url: "#",
-            icon: SquareTerminal,
+            title: "Pulpit",
+            url: "/dashboard",
+            icon: LayoutDashboard,
             isActive: true,
-            items: [
-                {
-                    title: "History",
-                    url: "#",
-                },
-                {
-                    title: "Starred",
-                    url: "#",
-                },
-                {
-                    title: "Settings",
-                    url: "#",
-                },
-            ],
         },
         {
-            title: "Models",
-            url: "#",
-            icon: Bot,
-            items: [
-                {
-                    title: "Genesis",
-                    url: "#",
-                },
-                {
-                    title: "Explorer",
-                    url: "#",
-                },
-                {
-                    title: "Quantum",
-                    url: "#",
-                },
-            ],
+            title: "Moje Pola",
+            url: "/dashboard/fields",
+            icon: Tractor,
         },
         {
-            title: "Documentation",
-            url: "#",
+            title: "Inwentaryzacja",
+            url: "/dashboard/inventory",
+            icon: FlaskConical,
+        },
+        {
+            title: "Dziennik Polowy",
+            url: "/dashboard/journal",
+            icon: Calendar,
+        },
+        {
+            title: "Vademecum",
+            url: "/dashboard/vademecum",
             icon: BookOpen,
-            items: [
-                {
-                    title: "Introduction",
-                    url: "#",
-                },
-                {
-                    title: "Get Started",
-                    url: "#",
-                },
-                {
-                    title: "Tutorials",
-                    url: "#",
-                },
-                {
-                    title: "Changelog",
-                    url: "#",
-                },
-            ],
-        },
-        {
-            title: "Settings",
-            url: "#",
-            icon: Settings2,
-            items: [
-                {
-                    title: "General",
-                    url: "#",
-                },
-                {
-                    title: "Team",
-                    url: "#",
-                },
-                {
-                    title: "Billing",
-                    url: "#",
-                },
-                {
-                    title: "Limits",
-                    url: "#",
-                },
-            ],
+            isActive: true,
         },
     ],
+    // projects: [
+    //     {
+    //         name: "Komunikaty PIORiN",
+    //         url: "https://piorin.gov.pl/",
+    //         icon: ShieldAlert,
+    //     },
+    //     {
+    //         name: "Pogoda dla rolnika",
+    //         url: "/dashboard/weather",
+    //         icon: CloudSun,
+    //     },
+    //     {
+    //         name: "Etykiety ŚOR",
+    //         url: "https://www.gov.pl/web/rolnictwo/wyszukiwarka-srodkow-ochrony-roslin",
+    //         icon: FileText,
+    //     },
+    // ],
     navSecondary: [
-        {
-            title: "Support",
-            url: "#",
-            icon: LifeBuoy,
-        },
-        {
-            title: "Feedback",
-            url: "#",
-            icon: Send,
-        },
+        // {
+        //     title: "Ustawienia Gospodarstwa",
+        //     url: "/dashboard/settings",
+        //     icon: Settings2,
+        // },
+        // {
+        //     title: "Pomoc",
+        //     url: "/help",
+        //     icon: Leaf,
+        // },
     ],
-    projects: [
-        {
-            name: "Design Engineering",
-            url: "#",
-            icon: Frame,
-        },
-        {
-            name: "Sales & Marketing",
-            url: "#",
-            icon: PieChart,
-        },
-        {
-            name: "Travel",
-            url: "#",
-            icon: Map,
-        },
-    ]
 }
-export default sidebarData
+
+export default sidebarData;

@@ -12,6 +12,7 @@ import {
     SidebarProvider,
     SidebarTrigger,
 } from "@/components/ui/sidebar"
+import {WeatherWidget} from "@/components/dashboard/weather-dashboard";
 
 export default function Page() {
     return (
@@ -22,13 +23,14 @@ export default function Page() {
                     <Breadcrumb>
                         <BreadcrumbList>
                             <BreadcrumbItem>
-                                <BreadcrumbPage>Main page </BreadcrumbPage>
+                                <BreadcrumbPage>Dashboard</BreadcrumbPage>
                             </BreadcrumbItem>
                         </BreadcrumbList>
                     </Breadcrumb>
                 </header>
 
                 <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+                    <WeatherWidget />
                 </div>
         </>
     )

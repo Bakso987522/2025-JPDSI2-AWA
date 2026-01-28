@@ -11,6 +11,7 @@ export const ProductSchema = z.object({
     pests: z.array(z.string()).default([]),
     authorizationNumber: z.string().optional(),
 });
+
 export const SearchCriteriaSchema = z.object({
     query: z.string().optional().catch("").default(""),
     cropName: z.array(z.string()).optional().default([]),
@@ -25,7 +26,11 @@ export const SearchResponseSchema = z.object({
     results: z.array(ProductSchema),
     suggestions: z.array(ProductSchema).default([]),
     totalPages: z.number().default(0),
+    totalElements: z.number().default(0),
+    currentPage: z.number().default(0)
 });
+
+
 export const ProductUsageSchema = z.object({
     cropName: z.string().nullable().transform(v => v || "Nieznana uprawa"),
     pestName: z.string().nullable().transform(v => v || "Nieznany agrofag"),
@@ -42,17 +47,13 @@ export const ProductDetailsSchema = z.object({
     salesDeadline: z.string().nullable().optional(),
     useDeadline: z.string().nullable().optional(),
     labelUrl: z.string().nullable().optional(),
-
     activeSubstances: z.array(z.string()).default([]),
-
     usages: z.array(ProductUsageSchema).default([]),
-
     crops: z.array(z.string()).default([]),
     pests: z.array(z.string()).default([]),
 });
 
 export type ProductDetails = z.infer<typeof ProductDetailsSchema>;
-
 export type Product = z.infer<typeof ProductSchema>;
 export type SearchResponse = z.infer<typeof SearchResponseSchema>;
 export type SearchCriteria = z.infer<typeof SearchCriteriaSchema>;

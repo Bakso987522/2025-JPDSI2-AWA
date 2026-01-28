@@ -37,7 +37,7 @@ public class AuthenticationService {
         repository.save(user);
 
         String jwtToken = jwtService.generateToken(user, userAgent);
-        return new AuthenticationResponse(jwtToken);
+        return new AuthenticationResponse(jwtToken, user.getName());
     }
 
     public AuthenticationResponse authenticate(AuthenticationRequest request, String userAgent) {
@@ -52,6 +52,6 @@ public class AuthenticationService {
                 .orElseThrow();
 
         String jwtToken = jwtService.generateToken(user, userAgent);
-        return new AuthenticationResponse(jwtToken);
+        return new AuthenticationResponse(jwtToken, user.getName());
     }
 }
